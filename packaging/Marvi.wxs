@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- El identificador de actualización y los componentes permanecen estables entre versiones. -->
+  <Product Id="*" Name="Marvi" Language="3082" Codepage="1252" Version="$(var.Version)"
+           Manufacturer="TomNahu" UpgradeCode="CE8D757D-6126-4506-A915-B5D2BA91C8D4">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited"
+             Description="Marvi, compañero de estudio" SummaryCodepage="1252" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="Ya tenés una versión más reciente de Marvi." Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Icon Id="Casita.ico" SourceFile="$(var.SourceDir)/Marvi.ico" />
+    <Property Id="ARPPRODUCTICON" Value="Casita.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/TomNahu/Marvi" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="Programs" Name="Programs">
+          <Directory Id="INSTALLFOLDER" Name="Marvi">
+            <Component Id="Application" Guid="02B4F699-1C86-42E2-AD8D-0482C93ABEEE">
+              <File Id="MarviExe" Source="$(var.Payload)/Marvi.exe" KeyPath="yes" />
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Component Id="MenuEntry" Guid="7AB9E3EF-F08A-4445-A025-40DB0DDB5925">
+          <Shortcut Id="StartMenu" Name="Marvi" Target="[#MarviExe]" WorkingDirectory="INSTALLFOLDER"
+                    Description="Tu compañero de estudio" Icon="Casita.ico" />
+          <RegistryValue Root="HKCU" Key="Software\TomNahu\Marvi" Name="Instalado" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </Directory>
+    <Feature Id="Complete" Title="Marvi" Level="1"><ComponentRef Id="Application"/><ComponentRef Id="MenuEntry"/></Feature>
+    <UI>
+      <TextStyle Id="Normal" FaceName="Segoe UI" Size="10"/>
+      <TextStyle Id="Titulo" FaceName="Segoe UI" Size="16" Bold="yes"/>
+      <Property Id="DefaultUIFont" Value="Normal"/>
+      <Dialog Id="Welcome" Width="310" Height="122" Title="Instalar Marvi">
+        <Control Id="Heading" Type="Text" X="14" Y="10" Width="280" Height="24" Text="{\Titulo}Marvi"/>
+        <Control Id="Info" Type="Text" X="14" Y="40" Width="280" Height="38" Text="Instalá Marvi para tu usuario de Windows. Después podés abrirlo desde Inicio."/>
+        <Control Id="Install" Type="PushButton" X="140" Y="90" Width="76" Height="18" Default="yes" Text="Instalar">
+          <Publish Event="EndDialog" Value="Return">1</Publish>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="222" Y="90" Width="74" Height="18" Cancel="yes" Text="Cancelar">
+          <Publish Event="EndDialog" Value="Exit">1</Publish>
+        </Control>
+      </Dialog>
+      <InstallUISequence><Show Dialog="Welcome" Before="ExecuteAction">NOT Installed AND NOT ACTION="ADMIN"</Show></InstallUISequence>
+    </UI>
+  </Product>
+</Wix>
