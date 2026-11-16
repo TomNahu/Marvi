@@ -47,8 +47,6 @@ namespace Marvi
             return Math.Max(0,stop-StageStartUtc);
         }
 
-        public long FocusTotal(long now) { return FocusTicks+(Stage==StudyStage.Focus ? Elapsed(now) : 0); }
-        public long BreakTotal(long now) { return BreakTicks+(Stage==StudyStage.Break ? Elapsed(now) : 0); }
         public long ClockTicks(long now) { return DueUtc==0 ? Elapsed(now) : Math.Max(0,DueUtc-now); }
         public int SuggestedMinutes
         {

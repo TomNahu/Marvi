@@ -103,6 +103,7 @@ namespace Marvi
 
         private void Review(ReviewCard card, bool revealed)
         {
+            // Primero se recupera de memoria. La referencia y la próxima fecha aparecen después del intento.
             ClearPage();
             Heading("Repasá con Marvi");
             Text(card.Question, 18);

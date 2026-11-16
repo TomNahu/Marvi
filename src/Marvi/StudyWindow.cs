@@ -17,6 +17,7 @@ namespace Marvi
         internal StudyWindow(PetWindow pet) : base("Estudiá conmigo · Marvi")
         {
             this.pet = pet;
+            Activated += (s,e) => RefreshReviewCount();
         }
         private void Goal(StudySession s)
         {
@@ -119,6 +120,7 @@ namespace Marvi
 
         public void Render(StudySession s)
         {
+            // Reconstruimos los controles al cambiar de etapa. Cada segundo solo cambia el texto del reloj.
             ClearPage(); clock=null; reviewButton=null;
             if(s.Stage==StudyStage.Idle)
             {

@@ -16,6 +16,7 @@ namespace Marvi
         public static readonly string[] CoatNames = { "Canela y crema", "Gris azulado", "Chocolate", "Marrón", "Negro", "Gris", "Blanco" };
         public static PetProfile Load(string directory)
         {
+            // Los nombres personalizados sobreviven al cambio de VPet a Marvi.
             try
             {
                 var profile = LocalData.Read<PetProfile>(Path.Combine(directory,"profile.json"));

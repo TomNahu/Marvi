@@ -225,6 +225,7 @@ namespace Marvi
 
         private void FinishDelivery()
         {
+            // La entrega permanece en la cola hasta que termina la presentación.
             motion.Stop();
             var gift=presentation;
             HideParcel();
