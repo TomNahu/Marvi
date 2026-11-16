@@ -1,0 +1,13 @@
+/dist/
+/preview/
+**/bin/
+**/obj/
+.vs/
+*.user
+*.wixpdb
+Datos/
+Cartas/
+estudio.json
+entregas.json
+practica.json
+profile.json

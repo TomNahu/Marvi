@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Marvi</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup><Page Remove="MenuTheme.xaml" /><Resource Include="MenuTheme.xaml" /><Resource Include="Assets/*.png" /></ItemGroup>
+</Project>
+
