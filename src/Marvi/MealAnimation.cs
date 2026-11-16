@@ -19,7 +19,6 @@ namespace Marvi
         private static readonly int[] Eat=Array.ConvertAll(FoodFrames,f=>f.Pose);
         private static readonly int[] Drink=Array.ConvertAll(WaterFrames,f=>f.Pose);
         private static readonly string[] MealArt={"comida-lleno","comida-medio","comida-migas","agua-quieta","agua-ondas","mano-plato"};
-        private readonly BitmapImage[] mealArt=new BitmapImage[MealArt.Length];
         private readonly Image dish=Layer(36), frontRim=Layer(36), servingHand=Layer(24);
 
         // The bowl touches the floor at stop 5. Only the wrist moves after that.
@@ -30,6 +29,7 @@ namespace Marvi
 
         private static MealFrame[] MakeMeal(bool water)
         {
+            // Primero se acerca el plato, luego se retira la mano y recién entonces baja la cabeza.
             var frames=new List<MealFrame>();
             int contents=water ? 3 : 0;
             Action<int,int,int,int,double> add=(pose,fill,place,ms,opacity)=>frames.Add(new MealFrame {
@@ -73,11 +73,6 @@ namespace Marvi
             actor.Children.Add(front);
         }
 
-        private BitmapImage MealImage(int index)
-        {
-            return mealArt[index] ?? (mealArt[index]=Decoration(MealArt[index]));
-        }
-
         private int DrawMeal()
         {
             var beat=(gesture==Eat ? FoodFrames : WaterFrames)[step-1];
@@ -86,7 +81,7 @@ namespace Marvi
             // into it only the near rim occludes the tongue or lower jaw.
             bool headInBowl=beat.Pose>=18 && beat.Pose<=23;
             Panel.SetZIndex((UIElement)dish.Parent,headInBowl ? -1 : 1);
-            dish.Source=frontRim.Source=MealImage(beat.Contents);
+            dish.Source=frontRim.Source=Decoration(MealArt[beat.Contents]);
             Canvas.SetLeft(dish,position.X); Canvas.SetLeft(frontRim,position.X);
             Canvas.SetTop(dish,position.Y); Canvas.SetTop(frontRim,position.Y);
             dish.Opacity=frontRim.Opacity=beat.DishOpacity;
@@ -95,7 +90,7 @@ namespace Marvi
             {
                 int retreat=beat.Placement-DishPath.Length;
                 Point offset=retreat>=0 ? WristRetreat[retreat] : new Point();
-                servingHand.Source=MealImage(5);
+                servingHand.Source=Decoration(MealArt[5]);
                 Canvas.SetLeft(servingHand,Math.Max(0,position.X-15+offset.X));
                 Canvas.SetTop(servingHand,position.Y+4+offset.Y);
                 servingHand.Opacity=retreat<0 ? beat.DishOpacity : 1-retreat*.34;

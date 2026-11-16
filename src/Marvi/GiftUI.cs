@@ -90,6 +90,7 @@ namespace Marvi
 
         private void MenuKey(object sender, KeyEventArgs e)
         {
+            // Reconoce el acorde simultáneo y la secuencia manteniendo Ctrl dentro de Marvi.
             if(e.Handled || e.IsRepeat) return;
             if(Keyboard.Modifiers==ModifierKeys.Control)
             {
@@ -188,7 +189,7 @@ namespace Marvi
 
         private void PresentScheduledGifts()
         {
-            if(!inbox.SpecialsUnlocked || inbox.Pending.Count==0 || StudyingNow || menu.IsVisible || OwnedWindows.Count>0) return;
+            if(!inbox.SpecialsUnlocked || inbox.Pending.Count==0 || StudyingNow || practiceWindow!=null || menu.IsVisible || OwnedWindows.Count>0) return;
             if(!IsVisible)
             {
                 returnHomeAfterGift=true;
@@ -222,7 +223,7 @@ namespace Marvi
 
         private bool TryStartGift()
         {
-            if(!inbox.SpecialsUnlocked || inbox.Pending.Count==0 || !IsVisible || StudyingNow || menu.IsVisible ||
+            if(!inbox.SpecialsUnlocked || inbox.Pending.Count==0 || !IsVisible || StudyingNow || practiceWindow!=null || menu.IsVisible ||
                 OwnedWindows.Count>0 || (gesture!=null && gesture!=Wag && gesture!=Blink)) return false;
             BeginGesture(Delivery);
             var gift=presentation=inbox.Pending[0];
@@ -233,9 +234,7 @@ namespace Marvi
 
         private static BitmapImage GiftIcon(Gift gift)
         {
-            var image=new BitmapImage(new Uri("pack://application:,,,/Marvi;component/Assets/"+
-                (gift.LetterOnly ? "sobre" : "ramo-"+gift.Flower)+".png"));
-            image.Freeze();return image;
+            return Decoration(gift.LetterOnly ? "sobre" : "ramo-"+gift.Flower);
         }
 
         private void ReadGift(Gift gift)

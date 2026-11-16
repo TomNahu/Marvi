@@ -14,6 +14,7 @@ namespace Marvi
         [STAThread]
         private static void Main()
         {
+            // Una sola mascota por escritorio evita que dos procesos escriban el mismo perfil.
             bool first;
             using (var instance = new System.Threading.Mutex(true, @"Local\Marvi.Desktop", out first))
             {
@@ -88,7 +89,6 @@ namespace Marvi
 
             LoadProfile();
             RenderOptions.SetBitmapScalingMode(dog, BitmapScalingMode.NearestNeighbor);
-            dog.Source = Pose(0);
 
             var stage = new Grid { Width=144, HorizontalAlignment=HorizontalAlignment.Center };
             dog.VerticalAlignment = VerticalAlignment.Bottom;
@@ -149,7 +149,7 @@ namespace Marvi
                 Dispatcher.BeginInvoke(new Action(OpenMenu));
             };
             tray.ContextMenuStrip = trayMenu;
-            tray.Icon = System.Drawing.SystemIcons.Application;
+            tray.Icon = System.Drawing.Icon.ExtractAssociatedIcon(typeof(Program).Assembly.Location);
             tray.Text = profile.Name + " · Marvi";
             tray.DoubleClick += (s, e) => Recall();
             tray.Visible = true;
@@ -165,7 +165,9 @@ namespace Marvi
                 giftTimer.Stop();
                 PersistInbox();
                 tray.Visible = false;
+                var trayIcon = tray.Icon;
                 tray.Dispose();
+                if (trayIcon != null) trayIcon.Dispose();
                 trayMenu.Dispose();
                 menu.Close();
             };
@@ -198,6 +200,7 @@ namespace Marvi
 
         private BitmapImage Pose(int index)
         {
+            // Solo se decodifican los fotogramas usados del pelaje activo.
             if (poses[index] == null) poses[index] = PetProfile.Sprite(profile.Coat, index);
             return poses[index];
         }
@@ -247,7 +250,7 @@ namespace Marvi
         private void BeginDig()
         {
             var name = Finds[random.Next(Finds.Length)];
-            foundObject.Source = new BitmapImage(new Uri("pack://application:,,,/Marvi;component/Assets/" + name + ".png"));
+            foundObject.Source = Decoration(name);
             BeginGesture(Dig);
         }
 
@@ -282,6 +285,7 @@ namespace Marvi
 
         private void DisplayGestureFrame()
         {
+            // Cada dibujo conserva su propia duración. Al terminar el gesto se detiene el reloj rápido.
             int pose = gesture[step++];
             dog.Source = Pose(pose);
             double duration = 150;

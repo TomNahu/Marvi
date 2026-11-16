@@ -55,6 +55,7 @@ namespace Marvi
 
         private static FetchFrame[] MakeFetch()
         {
+            // Una secuencia sincroniza pose, desplazamiento, ramo, dos ladridos y el brillo de siete segundos.
             var beats=new List<FetchFrame>();
             Action<int,FetchPhase,double,int> add=(pose,phase,d,t)=>beats.Add(new FetchFrame(pose,phase,d,t));
             foreach(int pose in new[]{74,75,78,89,90}) add(pose,FetchPhase.Look,0,130);
@@ -151,10 +152,15 @@ namespace Marvi
             glow.BeginAnimation(UIElement.OpacityProperty,shimmer);
         }
 
+        private static readonly Dictionary<string, BitmapImage> decorations = new Dictionary<string, BitmapImage>();
         private static BitmapImage Decoration(string name)
         {
-            var image=new BitmapImage(new Uri("pack://application:,,,/Marvi;component/Assets/"+name+".png"));
+            // El conjunto de accesorios es fijo. Compartir las imágenes evita decodificarlas en cada entrega.
+            BitmapImage image;
+            if (decorations.TryGetValue(name, out image)) return image;
+            image=new BitmapImage(new Uri("pack://application:,,,/Marvi;component/Assets/"+name+".png"));
             image.Freeze();
+            decorations.Add(name, image);
             return image;
         }
 

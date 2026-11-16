@@ -4,12 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Text;
 
 namespace Marvi
 {
-    // Windows reports awake time in 100 ns units, independent of clock changes.
+    // Tiempo despierto para el sorteo horario y hora civil local para las visitas de las 11:11.
     internal sealed class GiftClock
     {
         [DllImport("kernel32.dll")]
@@ -79,17 +78,14 @@ namespace Marvi
         {
             try
             {
-                using (var stream = File.OpenRead(Path.Combine(directory,"entregas.json")))
+                var state = LocalData.Read<GiftInbox>(Path.Combine(directory,"entregas.json"));
+                if (state != null)
                 {
-                    var state = (GiftInbox)new DataContractJsonSerializer(typeof(GiftInbox)).ReadObject(stream);
-                    if (state != null)
-                    {
-                        state.directory=directory;
-                        if (state.Pending == null) state.Pending = new List<Gift>();
-                        state.Pending.RemoveAll(g => !Valid(g));
-                        if (!Valid(state.Latest)) state.Latest = null;
-                        return state;
-                    }
+                    state.directory=directory;
+                    if (state.Pending == null) state.Pending = new List<Gift>();
+                    state.Pending.RemoveAll(g => !Valid(g));
+                    if (!Valid(state.Latest)) state.Latest = null;
+                    return state;
                 }
             }
             catch (IOException) { }
@@ -107,8 +103,7 @@ namespace Marvi
         {
             if(currentLetters) return false;
             currentLetters=true;
-            // Only retire known factory messages. Personal poems from old
-            // deliveries survive even when their original .txt is gone.
+            // Solo retiramos mensajes antiguos de fábrica. Los poemas elegidos por el usuario se conservan.
             if(Latest!=null && LetterLibrary.Retired(Latest.Letter)) Latest=null;
             foreach(var gift in Pending)
                 if(LetterLibrary.Retired(gift.Letter)) gift.Letter=library.Choose(random);

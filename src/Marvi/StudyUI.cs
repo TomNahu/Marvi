@@ -1,9 +1,9 @@
 using System;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Marvi
 {
@@ -18,6 +18,8 @@ namespace Marvi
             HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Top,
             Visibility=Visibility.Collapsed, ToolTip="Abrí Estudiá conmigo" };
         private bool readFailed, studyWriteError;
+        private readonly DispatcherTimer noteSave = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(450) };
+        private bool noteChanged;
         private string StudyFile { get { return Path.Combine(dataDirectory,"estudio.json"); } }
         private bool StudyingNow { get { return session.Active; } }
 
@@ -28,23 +30,28 @@ namespace Marvi
             LoadStudy();
             study.Interval=TimeSpan.FromSeconds(1);
             study.Tick+=(s,e)=>StudyTick();
+            noteSave.Tick += (s,e) => FlushStudyNote();
+            // La sesión usa UTC en disco. El reloj de pantalla solo tiene que repintar los tramos activos.
             Loaded+=(s,e)=>
             {
-                if(session.Active) { SetStudyPose(); study.Start(); StudyTick(); }
+                if(session.Active) { SetStudyPose(); StudyTick(); UpdateStudyTimer(); }
                 else if(session.Stage==StudyStage.Summary) ShowStudy(false);
             };
         }
         private void LoadStudy()
         {
             try { session=StudySession.Load(StudyFile); readFailed=false; }
-            catch(IOException) { readFailed=true; }
-            catch(SerializationException) { readFailed=true; }
-            catch(UnauthorizedAccessException) { readFailed=true; }
+            catch(Exception ex) { if (!LocalData.IsReadError(ex)) throw; readFailed=true; }
         }
 
         private bool SaveStudy(StudySession next)
         {
-            try { LocalData.Write(StudyFile,next); session=next; studyWriteError=false; return true; }
+            try
+            {
+                LocalData.Write(StudyFile,next);
+                session=next; studyWriteError=false; noteChanged=false; noteSave.Stop();
+                return true;
+            }
             catch(IOException) { }
             catch(UnauthorizedAccessException) { }
             if(!studyWriteError)
@@ -82,7 +89,7 @@ namespace Marvi
                 studyWindow.SizeChanged+=(s,e)=>{
                     if(studyWindow!=null) studyWindow.Top=Math.Max(area.Top,Math.Min(studyWindow.Top,area.Bottom-e.NewSize.Height));
                 };
-                studyWindow.Closed+=(s,e)=>{ studyWindow=null; if(!StudyingNow && IsLoaded && IsVisible) ScheduleIdle(); };
+                studyWindow.Closed+=(s,e)=>{ FlushStudyNote(); studyWindow=null; if(!StudyingNow && IsLoaded && IsVisible) ScheduleIdle(); };
                 studyWindow.ShowActivated=activate;
                 studyWindow.Render(session);
                 studyWindow.Show();
@@ -96,7 +103,7 @@ namespace Marvi
             returnHomeAfterGift=false;
             ClearMeal(); HideParcel(); foundObject.Visibility=Visibility.Collapsed;
             gesture=null;
-            target=session.Stage==StudyStage.Focus ? 6 : 0;
+            target=session.Stage==StudyStage.Focus && !explaining ? 6 : 0;
             if(frame!=target || target==6) StartMotion();
             else { dog.Source=Pose(frame); motion.Stop(); }
         }
@@ -118,6 +125,13 @@ namespace Marvi
                 SaveStudy(seen);
             }
             PaintStudyClock(now);
+            UpdateStudyTimer();
+        }
+        private void UpdateStudyTimer()
+        {
+            if (session.Stage==StudyStage.Focus || session.Stage==StudyStage.Break || (session.Pending && !session.NoticeShown))
+                study.Start();
+            else study.Stop();
         }
         private void PaintStudyClock(long now)
         {
@@ -132,7 +146,8 @@ namespace Marvi
             string caption=ticking ? label+time : (session.Stage==StudyStage.FocusDue ? "Bloque terminado" :
                 session.Stage==StudyStage.BreakDue ? "Pausa terminada" : "Elegí la pausa");
             studyBadge.Content=caption;
-            tray.Text=caption+" · Marvi";
+            string labelInTray = caption + " · Marvi";
+            if (tray.Text != labelInTray) tray.Text = labelInTray;
             if(studyWindow!=null) studyWindow.UpdateClock(time);
         }
 
@@ -151,7 +166,7 @@ namespace Marvi
             if(session.Active)
             {
                 if(!IsVisible) Show();
-                SetStudyPose(); study.Start();
+                SetStudyPose(); UpdateStudyTimer();
             }
             else
             {
@@ -162,7 +177,20 @@ namespace Marvi
             if(studyWindow!=null) studyWindow.Render(session);
             PaintStudyClock(now);
         }
-        internal void StartStudy(StudyMode mode,string goal) { ChangeStudy((s,t)=>s.Start(mode,goal,t)); }
+        internal void StartStudy(StudyMode mode,string goal,int focus,int pause,int extension)
+        {
+            ChangeStudy((s,t) => {
+                s.FocusMinutes=focus; s.BreakMinutes=pause; s.ExtensionMinutes=extension;
+                s.Start(mode,goal,t);
+            });
+        }
+        internal void SetPomodoroTimes(int focus,int pause,int extension)
+        {
+            // El plazo que ya corre se respeta aunque el estudiante cambie sus preferencias.
+            var next=session.Copy();
+            next.FocusMinutes=focus; next.BreakMinutes=pause; next.ExtensionMinutes=extension;
+            if (SaveStudy(next) && studyWindow!=null) { studyWindow.Render(session); PaintStudyClock(utcNow().Ticks); }
+        }
         internal void PauseStudy() { ChangeStudy((s,t)=>s.Pause(t)); }
         internal void BeginStudyBreak(int minutes) { ChangeStudy((s,t)=>s.StartBreak(minutes,t)); }
         internal void ExtendStudy() { ChangeStudy((s,t)=>s.Extend(t)); }
@@ -176,8 +204,14 @@ namespace Marvi
         internal void EditStudyNote(string note)
         {
             if(session.Note==note) return;
-            var next=session.Copy(); next.Note=note; SaveStudy(next);
+            // Agrupar pulsaciones evita reemplazar el archivo en disco por cada letra.
+            session.Note=note; noteChanged=true; noteSave.Stop(); noteSave.Start();
         }
-        private void CloseStudyUI() { study.Stop(); if(studyWindow!=null) studyWindow.Close(); }
+        private void FlushStudyNote()
+        {
+            noteSave.Stop();
+            if (noteChanged) SaveStudy(session);
+        }
+        private void CloseStudyUI() { study.Stop(); FlushStudyNote(); if(studyWindow!=null) studyWindow.Close(); }
     }
 }

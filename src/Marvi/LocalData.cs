@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 
 namespace Marvi
@@ -51,6 +52,12 @@ namespace Marvi
         {
             using (var input = File.OpenRead(file))
                 return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(input);
+        }
+
+        public static bool IsReadError(Exception error)
+        {
+            return error is IOException || error is UnauthorizedAccessException ||
+                error is InvalidDataException || error is SerializationException;
         }
 
         // Primero completamos el archivo temporal. Un cierre durante la escritura conserva la copia anterior.

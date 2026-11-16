@@ -8,8 +8,7 @@ using Forms = System.Windows.Forms;
 
 namespace Marvi
 {
-    // A WPF ContextMenu uses a non-activating popup HWND. A separate window
-    // gives both the pet and tray entry points a real keyboard input target.
+    // Esta ventana recibe el foco para que los atajos funcionen desde la mascota y desde la bandeja.
     internal sealed class PetMenu : Window
     {
         private readonly StackPanel rows = new StackPanel();
@@ -24,6 +23,7 @@ namespace Marvi
 
         public static bool KeyAvailable(Key key)
         {
+            // El registro solo sondea colisiones globales. Se libera antes de devolver el control.
             const int probeId=0x4156;
             if(!RegisterHotKey(IntPtr.Zero,probeId,6,(uint)KeyInterop.VirtualKeyFromKey(key))) return false;
             UnregisterHotKey(IntPtr.Zero,probeId);

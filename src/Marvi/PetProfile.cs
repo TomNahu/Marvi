@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,11 +18,12 @@ namespace Marvi
         {
             try
             {
-                using (var stream = File.OpenRead(Path.Combine(directory,"profile.json")))
+                var profile = LocalData.Read<PetProfile>(Path.Combine(directory,"profile.json"));
+                if (profile != null && !String.IsNullOrWhiteSpace(profile.Name) && profile.Name.Length <= 24 &&
+                    profile.Coat >= 0 && profile.Coat < CoatNames.Length)
                 {
-                    var profile = (PetProfile)new DataContractJsonSerializer(typeof(PetProfile)).ReadObject(stream);
-                    if (profile != null && !String.IsNullOrWhiteSpace(profile.Name) && profile.Name.Length <= 24 &&
-                        profile.Coat >= 0 && profile.Coat < CoatNames.Length) { if(profile.Name=="VPet") profile.Name="Marvi"; return profile; }
+                    if (profile.Name == "VPet") profile.Name = "Marvi";
+                    return profile;
                 }
             }
             catch (IOException) { }

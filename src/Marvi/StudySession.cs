@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 
 namespace Marvi
 {
@@ -11,12 +10,16 @@ namespace Marvi
     [DataContract]
     internal sealed class StudySession
     {
+        public const int DefaultFocus = 25, DefaultBreak = 5, DefaultExtension = 5;
         [DataMember] public StudyMode Mode;
         [DataMember] public StudyStage Stage;
         [DataMember] public string Goal="", Note="", Outcome="";
         [DataMember] public long SessionStartUtc, StageStartUtc, DueUtc;
         [DataMember] public long FocusTicks, BreakTicks, LastStretchTicks;
         [DataMember] public bool NoticeShown;
+        [DataMember] public int FocusMinutes = DefaultFocus;
+        [DataMember] public int BreakMinutes = DefaultBreak;
+        [DataMember] public int ExtensionMinutes = DefaultExtension;
 
         public bool Active { get { return Stage!=StudyStage.Idle && Stage!=StudyStage.Summary; } }
         public bool Pending { get { return Stage==StudyStage.FocusDue || Stage==StudyStage.BreakDue; } }
@@ -24,19 +27,22 @@ namespace Marvi
         public static StudySession Load(string file)
         {
             if(!File.Exists(file)) return new StudySession();
-            using(var input=File.OpenRead(file))
-            {
-                var result=(StudySession)new DataContractJsonSerializer(typeof(StudySession)).ReadObject(input);
-                if(result==null || !Enum.IsDefined(typeof(StudyStage),result.Stage) ||
-                    !Enum.IsDefined(typeof(StudyMode),result.Mode)) throw new InvalidDataException("Sesión inválida.");
-                return result;
-            }
+            var result = LocalData.Read<StudySession>(file);
+            if(result==null || !Enum.IsDefined(typeof(StudyStage),result.Stage) ||
+                !Enum.IsDefined(typeof(StudyMode),result.Mode)) throw new InvalidDataException("Sesión inválida.");
+            // Un archivo de la versión anterior conserva su vencimiento y recibe los valores originales.
+            if (!ValidMinutes(result.FocusMinutes)) result.FocusMinutes = DefaultFocus;
+            if (!ValidMinutes(result.BreakMinutes)) result.BreakMinutes = DefaultBreak;
+            if (!ValidMinutes(result.ExtensionMinutes)) result.ExtensionMinutes = DefaultExtension;
+            return result;
         }
 
+        public static bool ValidMinutes(int value) { return value >= 1 && value <= 1440; }
         public StudySession Copy() { return (StudySession)MemberwiseClone(); }
 
         private long Elapsed(long now)
         {
+            // Después del vencimiento, el tiempo de espera de una respuesta queda fuera del total.
             long stop=DueUtc==0 ? now : Math.Min(now,DueUtc);
             return Math.Max(0,stop-StageStartUtc);
         }
@@ -76,22 +82,22 @@ namespace Marvi
         {
             Mode=mode; Goal=goal.Trim(); Note=""; Outcome="";
             SessionStartUtc=now; FocusTicks=BreakTicks=LastStretchTicks=0;
-            SetStage(StudyStage.Focus,now,mode==StudyMode.Pomodoro ? 25 : 0);
+            SetStage(StudyStage.Focus,now,mode==StudyMode.Pomodoro ? FocusMinutes : 0);
         }
 
         public void Pause(long now)
         {
             CountUntil(now);
             bool flow=Mode==StudyMode.Flowtime;
-            SetStage(flow ? StudyStage.ChooseBreak : StudyStage.Break,now,flow ? 0 : 5);
+            SetStage(flow ? StudyStage.ChooseBreak : StudyStage.Break,now,flow ? 0 : BreakMinutes);
         }
 
         public void StartBreak(int minutes,long now) { SetStage(StudyStage.Break,now,minutes); }
-        public void Extend(long now) { SetStage(StudyStage.Focus,now,5); }
+        public void Extend(long now) { SetStage(StudyStage.Focus,now,ExtensionMinutes); }
         public void Resume(long now)
         {
             CountUntil(now);
-            SetStage(StudyStage.Focus,now,Mode==StudyMode.Pomodoro ? 25 : 0);
+            SetStage(StudyStage.Focus,now,Mode==StudyMode.Pomodoro ? FocusMinutes : 0);
         }
         public void Finish(long now) { CountUntil(now); SetStage(StudyStage.Summary,now,0); }
         public void Complete(string outcome,long now) { Outcome=outcome; SetStage(StudyStage.Idle,now,0); }
