@@ -12,6 +12,7 @@ namespace Marvi
         private bool explaining;
         internal PracticeBook Notebook { get; private set; }
         private string NotebookFile { get { return Path.Combine(dataDirectory, "practica.json"); } }
+        internal string PracticeDirectory { get { return dataDirectory; } }
 
         private bool LoadNotebook(bool reportError)
         {

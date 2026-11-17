@@ -2,14 +2,14 @@
 
 <img src="art/Marvi-casita.png" width="100" alt="Marvi en su casita">
 
-Marvi es un pitbull de escritorio para Windows 11. Acompaña tus sesiones de estudio, te ayuda a retomar después de una pausa y te deja practicar con tus propias preguntas. Funciona sin conexión. Esta publicación es el prototipo 0.2.0.
+Marvi es un pitbull de escritorio para Windows 11. Acompaña tus sesiones de estudio, te ayuda a retomar después de una pausa y te deja practicar con tus propias preguntas. Funciona sin conexión. Esta publicación es el prototipo 0.3.0.
 
 ## Descargar
 
 | Edición | Cómo usarla |
 | --- | --- |
-| [Instalador para Windows](https://github.com/TomNahu/Marvi/releases/download/v0.2.0/Marvi-0.2.0-Instalador.msi) | Abrí el MSI, elegí **Instalar** y buscá **Marvi** en Inicio. Se instala para tu usuario. Podés desinstalarlo desde Configuración → Aplicaciones. |
-| [Portátil para Windows](https://github.com/TomNahu/Marvi/releases/download/v0.2.0/Marvi-0.2.0-Portable.zip) | Extraé todo el ZIP en una carpeta con permiso de escritura y abrí **Marvi.exe**. Para llevarte tu progreso a otra computadora, copiá toda la carpeta, incluidos **Marvi.portable** y **Datos**. |
+| [Instalador para Windows](https://github.com/TomNahu/Marvi/releases/download/v0.3.0/Marvi-0.3.0-Instalador.msi) | Abrí el MSI, elegí **Instalar** y buscá **Marvi** en Inicio. Se instala para tu usuario. Podés desinstalarlo desde Configuración → Aplicaciones. |
+| [Portátil para Windows](https://github.com/TomNahu/Marvi/releases/download/v0.3.0/Marvi-0.3.0-Portable.zip) | Extraé todo el ZIP en una carpeta con permiso de escritura y abrí **Marvi.exe**. Para llevarte tu progreso a otra computadora, copiá toda la carpeta, incluidos **Marvi.portable** y **Datos**. |
 
 Las dos ediciones usan el .NET Framework incluido en Windows 11. Una sola copia de Marvi puede estar abierta por escritorio. [Compatibilidad de .NET Framework en Windows](https://learn.microsoft.com/es-es/dotnet/framework/install/)
 
@@ -21,9 +21,9 @@ Hacé clic derecho sobre Marvi y elegí **Estudiá conmigo**. También podés ab
 - **Flowtime**. Empezá el cronómetro y decidí cuándo parar. La pausa sugerida es de un minuto por cada cinco estudiados, con un mínimo de uno. Podés cambiarla o elegir **Sin límite**.
 - **Repasá con Marvi**. Guardá una pregunta y, si querés, la respuesta o la página de tu apunte. El día elegido, intentá responder antes de ver la pista. Podés programarla de nuevo para la fecha que prefieras. También podés guardar una pregunta al cerrar la sesión.
 - **Explicáselo a Marvi**. Elegí un paso de un ejercicio o un concepto y explicalo con tus palabras mientras Marvi se sienta a escucharte. La actividad funciona sin micrófono. Si te queda una duda, podés convertirla en una pregunta de repaso.
-- **Mezclá ejercicios**. Elegí dos o tres tipos de problemas. Marvi los intercala para que decidas qué procedimiento usar. Incluye ecuaciones, proporcionalidad y geometría. Podés sumar tus propios tipos, enunciados y soluciones.
+- **Taller de ejercicios**. Elegí una materia y una consigna de Física, Química, Cálculo I o II, Probabilidad y Estadística, Matemática Superior o Análisis Numérico. Escribí tu desarrollo y consultá la solución cuando quieras. Podés guardar ejercicios propios, importar una guía PDF o vincular un ejercicio a su página. Marvi copia el PDF a `Guias` dentro de tus datos y lo abre en tu lector habitual.
 
-En la ventana de estudio, antes de empezar o mientras estudiás, **Ctrl + Shift + F1** abre el repaso, **Ctrl + Shift + F2** abre la autoexplicación y **Ctrl + Shift + F3** abre la mezcla. Durante una pausa podés anotar por dónde querés seguir. La nota vuelve a aparecer al retomar.
+En la ventana de estudio, antes de empezar o mientras estudiás, **Ctrl + Shift + F1** abre el repaso, **Ctrl + Shift + F2** abre la autoexplicación y **Ctrl + Shift + F3** abre el taller. Durante una pausa podés anotar por dónde querés seguir. La nota vuelve a aparecer al retomar.
 
 ## Datos y desarrollo
 

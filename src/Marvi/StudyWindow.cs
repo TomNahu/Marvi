@@ -56,7 +56,7 @@ namespace Marvi
             reviewButton = ActionButton("Repasá con Marvi", () => pet.OpenPractice(PracticePage.Review));
             reviewButton.ToolTip = "Ctrl + Shift + F1";
             ActionButton("Explicáselo a Marvi", () => pet.OpenPractice(PracticePage.Explain)).ToolTip = "Ctrl + Shift + F2";
-            ActionButton("Mezclá ejercicios", () => pet.OpenPractice(PracticePage.Math)).ToolTip = "Ctrl + Shift + F3";
+            ActionButton(PracticeWindow.Workshop, () => pet.OpenPractice(PracticePage.Math)).ToolTip = "Ctrl + Shift + F3";
             RefreshReviewCount();
         }
 

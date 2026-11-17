@@ -110,13 +110,24 @@ internal static class DesktopChecks
         File.WriteAllText(old, "{\"Mode\":0,\"Stage\":1,\"DueUtc\":12345}");
         var migrated = StudySession.Load(old);
         Assert(migrated.DueUtc == 12345 && migrated.FocusMinutes == 25 && migrated.BreakMinutes == 5 && migrated.ExtensionMinutes == 5, "Migración de Pomodoro");
-        for (int seed = 0; seed < 100; seed++)
-        {
-            var topics = MixedMath.Examples.Select(p => p.Topic).Distinct().Take(2 + seed % 2).ToList();
-            var mix = MixedMath.Mix(MixedMath.Examples, topics, new Random(seed));
-            Assert(mix.Count == topics.Count * 3 && mix.Distinct().Count() == mix.Count, "Repetición en matemática");
-            Assert(!mix.Zip(mix.Skip(1), (a,b) => a.Topic == b.Topic).Any(same => same), "Tipos consecutivos");
-        }
+        Assert(ExerciseCatalog.Examples.Select(p => p.Topic).Distinct().Count() == 7, "Falta una materia");
+        Assert(ExerciseCatalog.Examples.All(p => !String.IsNullOrWhiteSpace(p.Solution)), "Ejercicio sin solución");
+        var legacy = Path.Combine(data, "cuaderno-anterior.json");
+        File.WriteAllText(legacy, "{\"Cards\":[],\"Problems\":[{\"Topic\":\"Fracciones\",\"Prompt\":\"Consigna anterior\",\"Solution\":\"Referencia\"}]}");
+        var book = PracticeBook.Load(legacy);
+        Assert(book.Guides.Count == 0 && book.Problems.Single().Title == "Consigna anterior", "Migración del cuaderno anterior");
+        var pdf = Path.Combine(data, "Trabajo práctico.pdf");
+        File.WriteAllText(pdf, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n5 0 obj\n<< /Length 68 >>\nstream\nBT /F1 12 Tf 72 740 Td (TP 1 - Calcula la aceleracion media.) Tj ET\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241 00000 n \n0000000311 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n428\n%%EOF\n", System.Text.Encoding.ASCII);
+        var guide = PdfGuide.Import(pdf, "Física", data);
+        var second = PdfGuide.Import(pdf, "Química", data);
+        Assert(guide.Id != second.Id, "Dos archivos con igual nombre se superpusieron");
+        File.Delete(pdf);
+        Assert(File.Exists(guide.LocalPath(data)), "El PDF dependía de la ubicación original");
+        File.Copy(guide.LocalPath(data), Path.Combine(data, "Guía del taller.pdf"));
+        File.WriteAllText(pdf, "archivo ajeno");
+        try { PdfGuide.Import(pdf, "Física", data); throw new Exception("Aceptó una cabecera ajena"); }
+        catch (InvalidDataException) { }
+        LocalData.Write(Path.Combine(data, "practica.json"), book);
         var library = new LetterLibrary(data);
         File.WriteAllText(Path.Combine(data, "Cartas", "propia.txt"), "Prueba local");
         Assert(library.Choose(new Random()) == "Prueba local", "Prioridad de las cartas personales");
@@ -127,7 +138,7 @@ internal static class DesktopChecks
             for (int coat = 0; coat < PetProfile.CoatNames.Length; coat++)
                 Assert(PetProfile.Sprite(coat, pose).PixelWidth > 0, "Sprite faltante");
         }
-        Console.WriteLine("Correcto: perfiles anteriores, cartas locales, pelajes y 100 mezclas.");
+        Console.WriteLine("Correcto: perfiles anteriores, cartas locales, pelajes, catálogo y guías PDF.");
     }
 
     private static void Pomodoro()
@@ -184,21 +195,30 @@ internal static class DesktopChecks
         var cards = Children<ListBox>(p).Single(); Assert(cards.Items.Count == 2, "Duda sin guardar");
         cards.SelectedIndex = 0; Click(p, "Repasar ahora"); Click(p, "Hoy paso"); Click(p, "Cerrar");
         Click(w, "Explicáselo a Marvi"); Click(WindowOf<PracticeWindow>(), "Lo pude explicar");
-        Click(w, "Mezclá ejercicios"); p = WindowOf<PracticeWindow>(); Click(p, "Agregar ejercicio propio");
-        Input(p, "Tipo de ejercicio").Text = "Fracciones"; Input(p, "Enunciado").Text = "¿Cuánto es la mitad de 3/4?";
-        Input(p, "Solución o referencia al apunte (opcional)").Text = "3/8";
-        Click(p, "Guardar ejercicio");
-        foreach (var choice in Children<CheckBox>(p)) choice.IsChecked = (string)choice.Content != "Proporcionalidad";
-        Click(p, "Empezar mezcla");
-        for (int i = 1; i <= 3; i++)
-        {
-            Assert(HasText(p, "Ejercicio " + i + " de 3"), "Mezcla incompleta");
-            Click(p, "Ver solución o pista"); Click(p, i == 3 ? "Terminar mezcla" : "Siguiente ejercicio");
-        }
-        Click(p, "Cerrar"); w.Close();
+        Click(w, "Taller de ejercicios"); p = WindowOf<PracticeWindow>();
+        var subjects = Children<ComboBox>(p).Single(c => AutomationProperties.GetName(c) == "Materia");
+        Assert(subjects.Items.Contains("Fracciones"), "Falta la materia anterior");
+        var import = p.ImportGuideFile(Path.Combine(data, "Guía del taller.pdf"));
+        while (!import.IsCompleted) Pump(25);
+        import.GetAwaiter().GetResult();
+        File.Delete(Path.Combine(data, "Guía del taller.pdf"));
+        Assert(PracticeBook.Load(Path.Combine(data,"practica.json")).Guides.Single().Subject == "Física", "Guía asociada a otra materia");
+        Click(p, "Anotar ejercicio de la guía");
+        Input(p, "Tema o título (opcional)").Text = "Trabajo práctico 1";
+        Input(p, "Consigna o número de ejercicio y página").Text = "Ejercicio 3, pág. 2";
+        Input(p, "Solución o referencia al apunte (opcional)").Text = "9 m";
+        Click(p, "Guardar ejercicio"); Click(p, "Resolver ejercicio");
+        Assert(HasText(p, "Ejercicio 3, pág. 2") && !HasText(p, "9 m"), "Se adelantó la respuesta");
+        Assert(Children<Button>(p).Any(b => (string)b.Content == "Consultar guía PDF"), "Se perdió el vínculo al PDF");
+        Click(p, "Ver solución o pista"); Assert(HasText(p, "9 m"), "Solución ausente");
+        Click(p, "Elegir otro ejercicio");
+        subjects = Children<ComboBox>(p).Single(c => AutomationProperties.GetName(c) == "Materia");
+        subjects.SelectedItem = "Análisis Numérico";
+        Click(p, "Agregar ejercicio propio"); Input(p, "Enunciado").Text = "Calculá el error absoluto.";
+        Click(p, "Guardar ejercicio"); Click(p, "Cerrar"); w.Close();
         var saved = PracticeBook.Load(Path.Combine(data, "practica.json"));
-        Assert(saved.Problems.Single().Topic == "Fracciones" && saved.Cards.Count == 2, "Práctica sin persistir");
-        Console.WriteLine("Correcto: repaso diferido, pista, duda, autoexplicación y mezcla con ejercicio propio.");
+        Assert(saved.Problems.Any(q => q.Topic == "Análisis Numérico") && saved.Problems.Any(q => q.GuideId == saved.Guides.Single().Id) && saved.Cards.Count == 2, "Práctica sin persistir");
+        Console.WriteLine("Correcto: repaso, autoexplicación, materias, ejercicio propio y guía vinculada.");
     }
     private static void Flowtime()
     {
@@ -238,7 +258,7 @@ internal static class DesktopChecks
         OpenPet(); Pump(1600); Sample("Mascota visible", 15);
         Menu(); Click(WindowOf<PetMenu>(), "Rodar"); Sample("Rodar", 2);
         var w = Study(); Click(w, "Empezar"); Sample("Pomodoro con reloj visible", 12);
-        Click(w, "Mezclá ejercicios"); var p = WindowOf<PracticeWindow>(); Click(p, "Empezar mezcla");
+        Click(w, "Taller de ejercicios"); var p = WindowOf<PracticeWindow>(); Click(p, "Resolver ejercicio");
         Sample("Ejercicio y Pomodoro", 10); Click(p, "Ver solución o pista"); p.Close();
         Click(w, "Finalizar sesión"); Click(w, "Listo");
         Menu(); Click(WindowOf<PetMenu>(), "Ir a la casita"); Sample("Casita", 15);

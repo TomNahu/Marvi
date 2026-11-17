@@ -9,10 +9,9 @@ namespace Marvi
 {
     internal enum PracticePage { Review, NewCard, Explain, Math }
 
-    internal sealed class PracticeWindow : StudySurface
+    internal sealed partial class PracticeWindow : StudySurface
     {
         private readonly PetWindow pet;
-        private readonly Random random = new Random();
         private PracticeBook Book { get { return pet.Notebook; } }
 
         internal PracticeWindow(PetWindow pet) : base("Práctica · Marvi") { this.pet = pet; }
@@ -25,7 +24,7 @@ namespace Marvi
                 case PracticePage.Review: ReviewHome(); break;
                 case PracticePage.NewCard: EditCard(null, false); break;
                 case PracticePage.Explain: Explain(); break;
-                case PracticePage.Math: MathHome(); break;
+                case PracticePage.Math: ExerciseHome(); break;
             }
         }
 
@@ -139,73 +138,6 @@ namespace Marvi
             Text("Si estás leyendo, contame con tus palabras qué ocurre y por qué. Podés hablar en voz alta o escribir en tu cuaderno.", 14);
             ActionButton("Lo pude explicar", Close, true);
             ActionButton("Me quedó una duda", () => { pet.ListenToExplanation(false); EditCard(null, true); });
-        }
-
-        private void MathHome()
-        {
-            ClearPage();
-            Heading("Mezclá ejercicios");
-            Text("Elegí dos o tres tipos que ya hayas visto.", 15);
-            var all = MixedMath.Examples.Concat(Book.Problems).ToList();
-            var choices = new List<CheckBox>();
-            foreach (var topic in all.Select(p => p.Topic).Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                var check = new CheckBox { Content = topic, IsChecked = choices.Count < 2, Margin = new Thickness(2,4,0,4) };
-                choices.Add(check);
-                body.Children.Add(check);
-            }
-            var error = Text("", 13);
-            ActionButton("Empezar mezcla", () => {
-                var topics = choices.Where(c => c.IsChecked == true).Select(c => (string)c.Content).ToList();
-                if (topics.Count < 2 || topics.Count > 3) { error.Text = "Elegí dos o tres tipos distintos."; return; }
-                MathRound(MixedMath.Mix(all, topics, random), 0);
-            }, true);
-            ActionButton("Agregar ejercicio propio", AddProblem);
-            ActionButton("Cerrar", Close);
-        }
-
-        private void AddProblem()
-        {
-            ClearPage();
-            Heading("Agregá un ejercicio");
-            var topic = Entry("Tipo de ejercicio", "", false);
-            var prompt = Entry("Enunciado", "", true);
-            var solution = Entry("Solución o referencia al apunte (opcional)", "", true);
-            var error = Text("", 13);
-            ActionButton("Guardar ejercicio", () => {
-                if (String.IsNullOrWhiteSpace(topic.Text) || String.IsNullOrWhiteSpace(prompt.Text))
-                { error.Text = "Completá el tipo y el enunciado."; return; }
-                var problem = new MathProblem(topic.Text.Trim(), prompt.Text.Trim(), solution.Text.Trim());
-                if (pet.EditBook(copy => copy.Problems.Add(problem))) MathHome();
-            }, true);
-            ActionButton("Volver", MathHome);
-        }
-
-        private void MathRound(List<MathProblem> sequence, int index)
-        {
-            ClearPage();
-            if (index == sequence.Count)
-            {
-                Heading("Terminaste la mezcla");
-                Text("Practicaste " + sequence.Count + " ejercicios.", 16);
-                ActionButton("Armar otra mezcla", MathHome, true);
-                ActionButton("Cerrar", Close);
-                return;
-            }
-            var problem = sequence[index];
-            Heading("Ejercicio " + (index + 1) + " de " + sequence.Count);
-            Text(problem.Prompt, 18);
-            Text("Elegí un procedimiento y resolvelo en papel.", 14);
-            var answer = Text("", 15);
-            answer.Visibility = Visibility.Collapsed;
-            var reveal = ActionButton("Ver solución o pista", () => {
-                answer.Text = problem.Topic + " · " + (String.IsNullOrWhiteSpace(problem.Solution) ?
-                    "Comprobá el resultado con tu apunte." : problem.Solution);
-                answer.Visibility = Visibility.Visible;
-            });
-            reveal.Click += (s,e) => reveal.Visibility = Visibility.Collapsed;
-            ActionButton(index + 1 == sequence.Count ? "Terminar mezcla" : "Siguiente ejercicio",
-                () => MathRound(sequence, index + 1), true);
         }
     }
 }
